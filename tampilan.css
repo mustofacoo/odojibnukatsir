@@ -1,0 +1,432 @@
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Container - SUPER COMPACT */
+        .container {
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+        }
+
+        /* Grid - MINIMAL GAP */
+        .grid {
+            gap: 4px !important;
+        }
+
+        .grid-cols-2 {
+            gap: 4px !important;
+        }
+
+        /* Gradient Backgrounds */
+        .gradient-bg {
+            background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+        }
+
+        /* Card Styles */
+        .card-shadow {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .card-shadow:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+        }
+
+        /* Juz Card - ULTRA COMPACT + LARGE FONTS */
+        .juz-card {
+            transition: all 0.2s ease !important;
+            cursor: pointer !important;
+            border: 1.5px solid #e5e7eb !important;
+            padding: 12px !important;
+            min-height: auto !important;
+            height: auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+        }
+
+        .juz-card:hover {
+            transform: translateY(-1px);
+            border-color: #ea580c;
+        }
+
+        .juz-card:active {
+            transform: scale(0.98);
+        }
+
+        /* Completed State */
+        .completed {
+            background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+            border-color: #ea580c !important;
+      
+        }
+        .juz-card.completed h4 {
+        color: #f1ff9f !important; /* Tetap putih saat selesai */
+        }
+
+        /* Remove ALL margins inside cards */
+        .juz-card * {
+            margin: 0 !important;
+        }
+
+        /* Large Typography for Better Readability */
+        .juz-card h3 {
+            font-size: 20px !important;
+            line-height: 1.1 !important;
+            font-weight: 700 !important;
+            padding: 0 !important;
+            margin-bottom: 2px !important;
+        }
+
+        .juz-card h4 {
+            font-size: 18px !important;
+            line-height: 1.2 !important;
+            font-weight: 600 !important;
+            padding: 0 !important;
+            color: #da7b07 !important; 
+            margin-top: 4px !important;
+            margin-bottom: 2px !important;
+        }
+
+
+        .juz-card p {
+            font-size: 13px !important;
+            line-height: 1.25 !important;
+            padding: 0 !important;
+            margin-bottom: 3px !important;
+        }
+
+        /* Minimal spacing inside cards */
+        .juz-card > div {
+            padding: 0 !important;
+            margin-bottom: 2px !important;
+        }
+
+        .juz-card .flex {
+            padding: 0 !important;
+        }
+
+        /* Status text */
+        .juz-card .text-center span {
+            font-size: 11px !important;
+            font-weight: 600 !important;
+        }
+
+        /* Bottom padding for content area */
+        .pb-20 {
+            padding-bottom: 60px !important;
+        }
+
+        /* Admin Badge */
+        .admin-badge {
+            background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+            font-size: 13px;
+            padding: 6px 12px;
+        }
+
+        /* Khatam Celebration */
+        .khatam-celebration {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            animation: celebration 0.5s ease-in-out;
+        }
+
+        @keyframes celebration {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        /* Color Utilities */
+        .text-primary {
+            color: #ea580c;
+        }
+
+        .bg-primary {
+            background-color: #ea580c;
+        }
+
+        .border-primary {
+            border-color: #ea580c;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            body {
+                font-size: 13px;
+            }
+            
+            .juz-card {
+                padding: 10px !important;
+            }
+            
+            .juz-card h3 {
+                font-size: 18px !important;
+            }
+            
+            .juz-card h4 {
+                font-size: 15px !important;
+            }
+            
+            .juz-card p {
+                font-size: 12px !important;
+            }
+            
+            .grid {
+                gap: 3px !important;
+            }
+            
+            .container {
+                padding-left: 4px !important;
+                padding-right: 4px !important;
+            }
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ea580c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Edit Participant Button */
+        .edit-participant-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .juz-card:hover .edit-participant-btn {
+            opacity: 1;
+        }
+
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 50;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .status-online {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-offline {
+            background: #ef4444;
+            color: white;
+        }
+
+        .status-connecting {
+            background: #f59e0b;
+            color: white;
+        }
+
+        /* Modal Backdrop */
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+
+        /* Announcement Modal */
+        .announcement-modal {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Export Text Area */
+        .export-text {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Floating Action Buttons */
+        .floating-buttons {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .floating-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .floating-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .floating-btn:active {
+            transform: scale(0.95);
+        }
+
+        .whatsapp-btn {
+            background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+            color: white;
+        }
+
+        .donate-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Focus States */
+        input:focus, select:focus, textarea:focus, button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+        }
+
+        /* Disabled State */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Selection Color */
+        ::selection {
+            background-color: #ea580c;
+            color: white;
+        }
+
+        ::-moz-selection {
+            background-color: #ea580c;
+            color: white;
+        }
+
+        /* Stats padding */
+        .stats-section {
+            padding: 6px !important;
+        }
+
+        /* Tab section padding */
+        .tab-section {
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+            padding-bottom: 6px !important;
+        }
+
+        /* Manage Participants Section */
+.max-h-96 {
+    max-height: 24rem;
+}
+
+/* Scrollbar styling untuk daftar peserta */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #a855f7;
+    border-radius: 10px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #9333ea;
+}
+
+/* Input focus state untuk edit peserta */
+input[type="text"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+}
