@@ -21,14 +21,14 @@
                 
                 // Data peserta
                 participants: [
-                    { id: 1, name: 'Ahmad' }, { id: 2, name: 'Fatimah' }, { id: 3, name: 'Abdullah' }, { id: 4, name: 'Khadijah' },
-                    { id: 5, name: 'Umar' }, { id: 6, name: 'Aisha' }, { id: 7, name: 'Ali' }, { id: 8, name: 'Zainab' },
-                    { id: 9, name: 'Yusuf' }, { id: 10, name: 'Maryam' }, { id: 11, name: 'Ibrahim' }, { id: 12, name: 'Hafsa' },
-                    { id: 13, name: 'Khalid' }, { id: 14, name: 'Ruqayyah' }, { id: 15, name: 'Hamza' }, { id: 16, name: 'Ummu Kulthum' },
-                    { id: 17, name: 'Bilal' }, { id: 18, name: 'Safiyyah' }, { id: 19, name: 'Salman' }, { id: 20, name: 'Sawdah' },
-                    { id: 21, name: 'Talhah' }, { id: 22, name: 'Maymunah' }, { id: 23, name: 'Zaid' }, { id: 24, name: 'Juwayriyyah' },
-                    { id: 25, name: 'Anas' }, { id: 26, name: 'Zaynab bint Jahsh' }, { id: 27, name: 'Mu\'adh' }, { id: 28, name: 'Ramlah' },
-                    { id: 29, name: 'Sa\'d' }, { id: 30, name: 'Habibah' }
+                    { id: 1, name: 'Peserta 1' }, { id: 2, name: 'Peserta 2' }, { id: 3, name: 'Peserta 3' }, { id: 4, name: 'Peserta 4' },
+                    { id: 5, name: 'Peserta 5' }, { id: 6, name: 'Peserta 6' }, { id: 7, name: 'Peserta 7' }, { id: 8, name: 'Peserta 8' },
+                    { id: 9, name: 'Peserta 9' }, { id: 10, name: 'Peserta 10' }, { id: 11, name: 'Peserta 11' }, { id: 12, name: 'Peserta 12' },
+                    { id: 13, name: 'Peserta 13' }, { id: 14, name: 'Peserta 14' }, { id: 15, name: 'Peserta 15' }, { id: 16, name: 'Peserta 16' },
+                    { id: 17, name: 'Peserta 17' }, { id: 18, name: 'Peserta 18' }, { id: 19, name: 'Peserta 19' }, { id: 20, name: 'Peserta 20' },
+                    { id: 21, name: 'Peserta 21' }, { id: 22, name: 'Peserta 22' }, { id: 23, name: 'Peserta 23' }, { id: 24, name: 'Peserta 24' },
+                    { id: 25, name: 'Peserta 25' }, { id: 26, name: 'Peserta 26' }, { id: 27, name: 'Peserta 27' }, { id: 28, name: 'Peserta 28' },
+                    { id: 29, name: 'Peserta 29' }, { id: 30, name: 'Peserta 30' }
                 ],
 
                 // Detail setiap juz
