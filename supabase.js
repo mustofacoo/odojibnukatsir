@@ -1,7 +1,7 @@
 
         // Supabase Configuration
-        const SUPABASE_URL = 'https://avbfccjifnptszchabjh.supabase.co'
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YmZjY2ppZm5wdHN6Y2hhYmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2OTQyODMsImV4cCI6MjA2NzI3MDI4M30.Al8QBt2khiS35uG5IkGIJrLtAd1niWUFAbcsx_pBEgU'
+        const SUPABASE_URL = 'https://ausoqxzwesdabfpagrmy.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1c29xeHp3ZXNkYWJmcGFncm15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNTkwMzAsImV4cCI6MjA3NTYzNTAzMH0.x2zCildxeAWLcWADpWwQjv7xFGKTTvTfaeKhGXbj_PU'
         
         // Initialize Supabase with better error handling
         let supabase = null;
