@@ -920,7 +920,7 @@
                         }
                     });
                     
-                    let exportText = `📖 *ONE DAY ONE JUZ TALENTA*\n`;
+                    let exportText = `*BISMILLAH ISTIQOMAH ONE DAY ONE JUZ*\n`;
                     exportText += `${dateStr}\n`;
                     exportText += `Update: ${timeStr} WIB\n`;
                //     exportText += `Sync: ${this.supabaseConnected ? 'Database terhubung' : 'Tidak terhubung'}\n`;
@@ -947,8 +947,7 @@
                     if (pendingParticipants.length > 0) {
                         exportText += `*BELUM SELESAI (${pendingParticipants.length})*\n`;
                         pendingParticipants.forEach(p => {
-                            exportText += `${p.status} ${p.name} - Juz ${p.juz} \n`;
-                            exportText += `    ${p.content}\n`;
+                            exportText += ` ${p.name} - Juz ${p.juz} \n`;
                         });
                     }
                     
