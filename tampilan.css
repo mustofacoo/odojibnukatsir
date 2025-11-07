@@ -430,3 +430,17 @@ input[type="text"]:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
 }
+
+.date-selector-btn {
+    transition: all 0.2s ease;
+}
+
+.date-selector-btn:active {
+    transform: scale(0.95);
+}
+
+/* Warning untuk centang kemarin */
+.yesterday-warning {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-left: 4px solid #d97706;
+}
