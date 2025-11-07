@@ -58,7 +58,7 @@
                     23: { name: "يسٓ ", content: "Yasin:1 - Az-Zumar:31", pages: "440-461"},
                     24: { name: "۞ فَمَنْ أَظْلَمُ مِمَّن كَذَبَ", content: "Az-Zumar:32 - Akhir Fushshilat", pages: "462-482"},
                     25: { name: "حمٓ ", content: "Asy Syura:1 - Al-Jatsiyah:37", pages: "482-502"},
-                    26: { name: "حمٓ", content: "Al-Ahqaf:1 - akhir Ath Thur", pages: "502-520"},
+                    26: { name: "حمٓ", content: "Al-Ahqaf:1 - akhir Qof", pages: "502-520"},
                     27: { name: "وَٱلذَّٰرِيَـٰتِ ذَرْوًۭا", content: "Adz-Dzariyat:1 - Al-Hadid:29", pages: "520-541"},
                     28: { name: "قَدْ سَمِعَ ٱللَّهُ", content: "Al-Mujadilah:1 - At-Tahrim:12", pages: "542-561"},
                     29: { name: "تَبَـٰرَكَ ٱلَّذِى", content: "Al-Mulk:1 - Al-Mursalat:50", pages: "562-581"},
@@ -67,8 +67,10 @@
 
                 // State management
                 activeTab: 'checklist',
+                selectedDate: '',
                 todayChecks: {},
                 monthlyData: {}, // Format: { "2025-07": { participantChecks: { 1: ["2025-07-01", "2025-07-02"], 2: [...] }, khatamDays: ["2025-07-01"] } }
+                
                 selectedMonth: '',
                 availableMonths: [],
                 
@@ -120,6 +122,7 @@
                     this.loadingMessage = 'Menyiapkan data bulanan...';
                     this.generateAvailableMonths();
                     this.selectedMonth = this.getCurrentMonth();
+                    this.selectedDate = this.getTodayKey(); // Set default ke hari ini
                     
                     // Initialize monthly data structure
                     this.loadingMessage = 'Menginisialisasi struktur data bulanan...';
@@ -520,6 +523,30 @@
                     }).format(new Date());
                 },
 
+                // TAMBAHKAN FUNGSI INI
+                getYesterdayKey() {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    return new Intl.DateTimeFormat('sv-SE', {
+                        timeZone: 'Asia/Jakarta',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).format(yesterday);
+                },
+
+                formatDateLabel(dateKey) {
+                    if (dateKey === this.getTodayKey()) return 'Hari Ini';
+                    if (dateKey === this.getYesterdayKey()) return 'Kemarin';
+                    
+                    const date = new Date(dateKey);
+                    return date.toLocaleDateString('id-ID', { 
+                        weekday: 'long', 
+                        day: 'numeric', 
+                        month: 'long' 
+                    });
+                },
+
                 getDaysInMonth(monthString = null) {
                     const targetMonth = monthString || this.selectedMonth;
                     if (!targetMonth) return 31;
@@ -561,21 +588,21 @@
                 },
 
                 isCompleted(participantId) {
-                    const today = this.getTodayKey();
-                    return this.todayChecks[today]?.includes(participantId) || false;
+                    const targetDate = this.selectedDate || this.getTodayKey();
+                    return this.todayChecks[targetDate]?.includes(participantId) || false;
                 },
 
                 // 🔧 FIXED: Better toggle check with guaranteed monthly data persistence
                 async toggleCheck(participantId) {
-                    const today = this.getTodayKey();
-                    const currentMonth = this.getCurrentMonth();
+                    const targetDate = this.selectedDate || this.getTodayKey(); // Gunakan tanggal yang dipilih
+                    const currentMonth = targetDate.slice(0, 7); // Extract "2025-07"
                     
                     // Debug log
-                    console.log('🔄 Toggle check:', { participantId, today, currentMonth });
+                    console.log('🔄 Toggle check:', { participantId, targetDate, currentMonth });
                     
                     // Ensure struktur data exist
-                    if (!this.todayChecks[today]) {
-                        this.todayChecks[today] = [];
+                    if (!this.todayChecks[targetDate]) {
+                        this.todayChecks[targetDate] = [];
                     }
                     
                     if (!this.monthlyData[currentMonth]) {
@@ -589,59 +616,55 @@
                         this.monthlyData[currentMonth].participantChecks[participantId] = [];
                     }
                     
-                    const index = this.todayChecks[today].indexOf(participantId);
+                    const index = this.todayChecks[targetDate].indexOf(participantId);
                     const isCurrentlyChecked = index > -1;
                     
-                    // Update today's checks
+                    // Update checks untuk tanggal yang dipilih
                     if (isCurrentlyChecked) {
-                        this.todayChecks[today].splice(index, 1);
+                        this.todayChecks[targetDate].splice(index, 1);
                     } else {
-                        this.todayChecks[today].push(participantId);
+                        this.todayChecks[targetDate].push(participantId);
                     }
                     
-                    // 🆕 WAJIB: Update monthly data
+                    // Update monthly data
                     const monthlyChecks = this.monthlyData[currentMonth].participantChecks[participantId];
-                    const monthlyIndex = monthlyChecks.indexOf(today);
+                    const monthlyIndex = monthlyChecks.indexOf(targetDate);
                     
                     if (isCurrentlyChecked) {
-                        // Remove from monthly
                         if (monthlyIndex > -1) {
                             monthlyChecks.splice(monthlyIndex, 1);
                         }
                     } else {
-                        // Add to monthly (avoid duplicates)
                         if (monthlyIndex === -1) {
-                            monthlyChecks.push(today);
-                            monthlyChecks.sort(); // Keep sorted
+                            monthlyChecks.push(targetDate);
+                            monthlyChecks.sort();
                         }
                     }
                     
                     // Update khatam status
-                    this.updateKhatamStatus(today, currentMonth);
+                    this.updateKhatamStatus(targetDate, currentMonth);
                     
-                    // 🆕 LANGSUNG SAVE ke localStorage (backup)
+                    // Save
                     this.saveData();
                     
                     // Save to Supabase
                     if (this.supabaseConnected) {
                         try {
                             if (isCurrentlyChecked) {
-                                // Remove from Supabase
                                 const { error: deleteError } = await window.supabaseClient
                                     .from('daily_checks')
                                     .delete()
                                     .eq('participant_id', participantId)
-                                    .eq('check_date', today);
+                                    .eq('check_date', targetDate);
                                     
                                 if (deleteError) throw deleteError;
                                 console.log('✅ Check removed from Supabase');
                             } else {
-                                // Add to Supabase
                                 const { error: insertError } = await window.supabaseClient
                                     .from('daily_checks')
                                     .insert({
                                         participant_id: participantId,
-                                        check_date: today
+                                        check_date: targetDate
                                     });
                                     
                                 if (insertError) throw insertError;
@@ -649,7 +672,6 @@
                             }
                         } catch (error) {
                             console.error('❌ Supabase sync failed:', error);
-                            // Jangan revert, karena sudah disave ke localStorage
                             alert('⚠️ Sinkronisasi Supabase gagal, tapi data tersimpan di lokal.');
                         }
                     }
@@ -704,8 +726,8 @@
                 },
 
                 getTodayCompleted() {
-                    const today = this.getTodayKey();
-                    return this.todayChecks[today]?.length || 0;
+                    const targetDate = this.selectedDate || this.getTodayKey();
+                    return this.todayChecks[targetDate]?.length || 0;
                 },
 
                 generateAvailableMonths() {
