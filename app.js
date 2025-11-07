@@ -555,17 +555,24 @@
                 },
 
                 getDaysSinceStart() {
-                    const jakartaToday = new Date(new Intl.DateTimeFormat('sv-SE', {
-                        timeZone: 'Asia/Jakarta',
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit'
-                    }).format(new Date()));
-                    
-                    const programStart = new Date('2025-07-01');
-                    const diffTime = jakartaToday - programStart;
-                    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                },
+                                    // 1. Gunakan tanggal yang sedang dipilih (selectedDate), BUKAN tanggal hari ini
+                                    // Jika selectedDate masih kosong (saat init), gunakan getTodayKey()
+                                    const targetDateKey = this.selectedDate || this.getTodayKey();
+                                    
+                                    // 2. Buat objek Date dari tanggal tersebut.
+                                    // Format 'sv-SE' (YYYY-MM-DD) aman untuk konstruktor Date
+                                    // Ini akan membuat Date di T00:00:00 zona waktu LOKAL.
+                                    const targetDate = new Date(targetDateKey); 
+                                    
+                                    // 3. Buat tanggal mulai dengan cara yang sama (T00:00:00 zona waktu LOKAL)
+                                    const programStart = new Date('2025-07-01');
+                                    
+                                    // 4. Hitung selisih waktu
+                                    const diffTime = targetDate - programStart;
+                                    
+                                    // 5. Bagi dengan (1000 * 60 * 60 * 24) dan bulatkan ke bawah
+                                    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                },
 
                 getRotatedParticipants() {
                     const daysSinceStart = this.getDaysSinceStart();
