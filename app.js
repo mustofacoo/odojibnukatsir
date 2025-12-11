@@ -523,7 +523,7 @@
                     }).format(new Date());
                 },
 
-                // TAMBAHKAN FUNGSI INI
+
                 getYesterdayKey() {
                     const yesterday = new Date();
                     yesterday.setDate(yesterday.getDate() - 1);
@@ -533,6 +533,56 @@
                         month: '2-digit',
                         day: '2-digit'
                     }).format(yesterday);
+                },
+
+                getPreviousDate(dateKey) {
+                    const date = new Date(dateKey);
+                    date.setDate(date.getDate() - 1);
+                    return new Intl.DateTimeFormat('sv-SE', {
+                        timeZone: 'Asia/Jakarta',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).format(date);
+                },
+
+                getNextDate(dateKey) {
+                    const date = new Date(dateKey);
+                    date.setDate(date.getDate() + 1);
+                    const today = this.getTodayKey();
+                    const nextDate = new Intl.DateTimeFormat('sv-SE', {
+                        timeZone: 'Asia/Jakarta',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).format(date);
+                    
+                    // Jangan bisa next melewati hari ini
+                    if (nextDate > today) return today;
+                    return nextDate;
+                },
+
+                canGoNext() {
+                    return this.selectedDate < this.getTodayKey();
+                },
+
+                goToToday() {
+                    this.selectedDate = this.getTodayKey();
+                },
+
+                goToProgramStart() {
+                    this.selectedDate = '2025-07-01'; // Tanggal mulai program
+                },
+
+                goBackDays(days) {
+                    const date = new Date(this.selectedDate);
+                    date.setDate(date.getDate() - days);
+                    this.selectedDate = new Intl.DateTimeFormat('sv-SE', {
+                        timeZone: 'Asia/Jakarta',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).format(date);
                 },
 
                 formatDateLabel(dateKey) {
