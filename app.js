@@ -848,6 +848,26 @@
                     return total;
                 },
 
+                getSortedParticipants() {
+                // Buat copy array participants agar tidak mengubah data asli
+                const sorted = [...this.participants];
+                
+                // Sort berdasarkan jumlah centang di bulan yang dipilih (descending)
+                sorted.sort((a, b) => {
+                    const countA = this.getParticipantMonthlyCount(a.id);
+                    const countB = this.getParticipantMonthlyCount(b.id);
+                    
+                    // Jika jumlah centang sama, sort berdasarkan nama (ascending)
+                    if (countB === countA) {
+                        return a.name.localeCompare(b.name);
+                    }
+                    
+                    return countB - countA; // Descending (terbanyak di atas)
+                });
+                
+                return sorted;
+            },
+
                 async saveData() {
                     // Always save to localStorage as backup
                     try {
