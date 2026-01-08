@@ -67,6 +67,8 @@
 
                 // State management
                 activeTab: 'checklist',
+                currentMotivation: '',
+                motivations: [],
                 selectedDate: '',
                 todayChecks: {},
                 monthlyData: {}, // Format: { "2025-07": { participantChecks: { 1: ["2025-07-01", "2025-07-02"], 2: [...] }, khatamDays: ["2025-07-01"] } }
@@ -86,6 +88,7 @@
 
                 async init() {
                     console.log('🚀 Starting One Day One Juz App...');
+                    this.loadMotivations();
                     this.loadingMessage = 'Memulai aplikasi...';
                     
                     try {
@@ -867,6 +870,29 @@
                 
                 return sorted;
             },
+            // --- FUNGSI TAMBAHAN BARU ---
+                async loadMotivations() {
+                    try {
+                        // Ambil data dari file json
+                        const response = await fetch('motivasi.json');
+                        if (!response.ok) throw new Error('Gagal load motivasi');
+                        
+                        this.motivations = await response.json();
+                        this.randomizeMotivation();
+                    } catch (error) {
+                        console.log('Menggunakan motivasi default', error);
+                        // Fallback jika file json gagal dimuat
+                        this.currentMotivation = '"Sebaik-baik kalian adalah yang mempelajari Al-Quran dan mengajarkannya."';
+                    }
+                },
+
+                randomizeMotivation() {
+                    if (this.motivations.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * this.motivations.length);
+                        this.currentMotivation = this.motivations[randomIndex];
+                    }
+                },
+                // ---------------------------
 
                 async saveData() {
                     // Always save to localStorage as backup
