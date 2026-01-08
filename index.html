@@ -260,6 +260,15 @@
 
         <!-- Tab Content: Checklist Harian -->
         <div x-show="activeTab === 'checklist'" class="container mx-auto pb-20">
+            <div x-show="currentMotivation" class="mb-3 px-1" x-transition:enter="transition ease-out duration-500">
+                <div @click="randomizeMotivation()" class="bg-orange-50 border-l-4 border-orange-500 p-3 rounded-r-lg card-shadow cursor-pointer hover:bg-orange-100 transition-colors">
+                    <div class="flex items-start gap-3">
+                        <div>
+                            <p class="text-[11px] text-orange-900 italic font-medium leading-relaxed" x-text="currentMotivation"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="grid grid-cols-2">
                 <template x-for="(participant, index) in getRotatedParticipants()" :key="participant.id">
                     <div class="juz-card bg-white rounded-xl card-shadow relative" 
