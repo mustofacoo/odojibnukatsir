@@ -136,10 +136,14 @@
         <header class="gradient-bg text-white shadow-lg">
             <div class="container mx-auto py-3" style="padding-left: 16px !important; padding-right: 16px !important;">
                 <div class="flex justify-between items-center">
-                    <div>
-                        <h1 class="text-lg font-bold">One Day One Juz</h1>
-                        <p class="text-orange-100 mt-0.5 text-xs">Istiqomah bersama Al Qur'an</p>
-                    </div>
+<div>
+    <h1 @dblclick="quickExportAndCopy()" 
+        class="text-lg font-bold cursor-pointer select-none active:text-gray-200 transition-colors"
+        title="">
+        One Day One Juz
+    </h1>
+    <p class="text-orange-100 mt-0.5 text-xs">Istiqomah bersama Al Qur'an</p>
+</div>
                     <div>
                         <div x-show="!isAdmin">
                             <button @click="showAdminLogin = true" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1.5 rounded-lg transition-all duration-300 text-xs">
