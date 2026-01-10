@@ -1084,6 +1084,19 @@
                     this.exportText = exportText;
                 },
 
+                // --- KODE BARU ---
+                // Fungsi cepat untuk generate dan copy langsung
+                quickExportAndCopy() {
+                    // 1. Generate text laporan
+                    this.generateWhatsAppExport();
+                    
+                    // 2. Tunggu sebentar (nextTick) agar data tersimpan variable, lalu copy
+                    this.$nextTick(() => {
+                        this.copyToClipboard();
+                    });
+                },
+                // ----------------
+
                 copyToClipboard() {
                     if (navigator.clipboard) {
                         navigator.clipboard.writeText(this.exportText).then(() => {
