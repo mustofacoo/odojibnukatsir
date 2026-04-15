@@ -255,7 +255,7 @@
                             .from('daily_checks')
                             .select('participant_id, check_date')
                             .order('check_date', { ascending: false })
-                            .limit(2000); // Ambil 2000 record terakhir
+                            .limit(70000); // Ambil 70000 record terakhir
                             
                         if (allChecksError) {
                             console.warn('All checks load warning:', allChecksError);
