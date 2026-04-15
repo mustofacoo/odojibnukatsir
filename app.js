@@ -71,6 +71,9 @@
                 
                 selectedMonth: '',
                 availableMonths: [],
+                loadedMonths: new Set(),      // mencatat bulan mana yang sudah di-load
+                khatamHistory: {},            // { "2025-07": ["2025-07-15", ...], ... }
+                totalKhatamCount: 0,          // total khatam seluruh program sejak awal
                 
                 // Admin
                 isAdmin: false,
@@ -234,118 +237,118 @@
 
                 // 🔧 FIXED: Load ALL historical data from Supabase
                 async loadDataFromSupabase() {
-                    try {
-                        console.log('📥 Loading data from Supabase...');
-                        
-                        // Load participants
-                        const { data: participants, error: participantsError } = await window.supabaseClient
-                            .from('participants')
-                            .select('*')
-                            .order('id');
-                            
-                        if (participantsError) {
-                            console.warn('Participants load warning:', participantsError);
-                        } else if (participants && participants.length > 0) {
-                            this.participants = participants;
-                            console.log('✅ Participants loaded:', participants.length);
-                        }
-
-                        // 🆕 Load ALL daily checks (tidak hanya hari ini)
-                        let allChecks = [];
-                        let from = 0;
-                        const pageSize = 1000;
-
-                        while (true) {
-                            const { data, error } = await window.supabaseClient
-                                .from('daily_checks')
-                                .select('participant_id, check_date')
-                                .order('check_date', { ascending: true })
-                                .range(from, from + pageSize - 1);
-                            
-                            if (error) { console.warn('All checks load warning:', error); break; }
-                            if (!data || data.length === 0) break;
-                            
-                            allChecks = allChecks.concat(data);
-                            console.log(`📥 Fetched ${allChecks.length} records...`);
-                            
-                            if (data.length < pageSize) break;
-                            from += pageSize;
-                        }
-
-                        if (allChecks.length > 0) {
-                            // Reset struktur data
-                            this.todayChecks = {};
-                            this.monthlyData = {};
-                            
-                            console.log('🔄 Reconstructing data from', allChecks.length, 'records...');
-                            
-                            // Rekonstruksi data dari semua centang
-                            allChecks.forEach(check => {
-                                const checkDate = check.check_date;
-                                const participantId = check.participant_id;
-                                const monthKey = checkDate.slice(0, 7); // "2025-07"
-                                
-                                // Tambahkan ke todayChecks
-                                if (!this.todayChecks[checkDate]) {
-                                    this.todayChecks[checkDate] = [];
-                                }
-                                if (!this.todayChecks[checkDate].includes(participantId)) {
-                                    this.todayChecks[checkDate].push(participantId);
-                                }
-                                
-                                // Tambahkan ke monthlyData
-                                if (!this.monthlyData[monthKey]) {
-                                    this.monthlyData[monthKey] = {
-                                        participantChecks: {},
-                                        khatamDays: []
-                                    };
-                                }
-                                
-                                if (!this.monthlyData[monthKey].participantChecks[participantId]) {
-                                    this.monthlyData[monthKey].participantChecks[participantId] = [];
-                                }
-                                
-                                if (!this.monthlyData[monthKey].participantChecks[participantId].includes(checkDate)) {
-                                    this.monthlyData[monthKey].participantChecks[participantId].push(checkDate);
-                                }
-                            });
-                            
-                            console.log('✅ All checks loaded and reconstructed:', allChecks.length);
-                        }
-
-                        // Load khatam days dari monthly_records
-                        const { data: monthlyRecords, error: monthlyError } = await window.supabaseClient
-                            .from('monthly_records')
-                            .select('*')
-                            .eq('is_khatam', true);
-                            
-                        if (monthlyError) {
-                            console.warn('Monthly records load warning:', monthlyError);
-                        } else if (monthlyRecords) {
-                            monthlyRecords.forEach(record => {
-                                const monthKey = record.month;
-                                if (!this.monthlyData[monthKey]) {
-                                    this.monthlyData[monthKey] = {
-                                        participantChecks: {},
-                                        khatamDays: []
-                                    };
-                                }
-                                
-                                if (!this.monthlyData[monthKey].khatamDays.includes(record.check_date)) {
-                                    this.monthlyData[monthKey].khatamDays.push(record.check_date);
-                                }
-                            });
-                            console.log('✅ Khatam days loaded');
-                        }
-
-                        console.log('✅ All data loaded from Supabase successfully');
-                        console.log('📊 Monthly data structure:', this.monthlyData);
-                        
-                    } catch (error) {
-                        console.error('❌ Error loading data from Supabase:', error);
-                        throw error;
-                    }
-                },
+                                    try {
+                                        console.log('📥 Loading data from Supabase (optimized)...');
+                
+                                        // --- 1. Load participants ---
+                                        const { data: participants, error: participantsError } = await window.supabaseClient
+                                            .from('participants')
+                                            .select('*')
+                                            .order('id');
+                
+                                        if (participantsError) {
+                                            console.warn('Participants load warning:', participantsError);
+                                        } else if (participants && participants.length > 0) {
+                                            this.participants = participants;
+                                            console.log('✅ Participants loaded:', participants.length);
+                                        }
+                
+                                        // --- 2. Load daily_checks: hanya 2 bulan terakhir ---
+                                        const today = new Date();
+                                        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                                        const fromDate = firstDayLastMonth.toISOString().slice(0, 10); // "YYYY-MM-DD"
+                
+                                        const { data: recentChecks, error: recentError } = await window.supabaseClient
+                                            .from('daily_checks')
+                                            .select('participant_id, check_date')
+                                            .gte('check_date', fromDate)
+                                            .order('check_date', { ascending: false });
+                
+                                        if (recentError) {
+                                            console.warn('Recent checks load warning:', recentError);
+                                        } else if (recentChecks) {
+                                            this.todayChecks = {};
+                                            this.monthlyData = {};
+                
+                                            recentChecks.forEach(check => {
+                                                const checkDate = check.check_date;
+                                                const participantId = check.participant_id;
+                                                const monthKey = checkDate.slice(0, 7);
+                
+                                                if (!this.todayChecks[checkDate]) this.todayChecks[checkDate] = [];
+                                                if (!this.todayChecks[checkDate].includes(participantId)) {
+                                                    this.todayChecks[checkDate].push(participantId);
+                                                }
+                
+                                                if (!this.monthlyData[monthKey]) {
+                                                    this.monthlyData[monthKey] = { participantChecks: {}, khatamDays: [] };
+                                                }
+                                                if (!this.monthlyData[monthKey].participantChecks[participantId]) {
+                                                    this.monthlyData[monthKey].participantChecks[participantId] = [];
+                                                }
+                                                if (!this.monthlyData[monthKey].participantChecks[participantId].includes(checkDate)) {
+                                                    this.monthlyData[monthKey].participantChecks[participantId].push(checkDate);
+                                                }
+                                            });
+                
+                                            // Tandai 2 bulan ini sudah di-load
+                                            const thisMonth = today.toISOString().slice(0, 7);
+                                            const lastMonth = firstDayLastMonth.toISOString().slice(0, 7);
+                                            this.loadedMonths.add(thisMonth);
+                                            this.loadedMonths.add(lastMonth);
+                
+                                            console.log('✅ Recent checks loaded:', recentChecks.length, 'records (from', fromDate, ')');
+                                        }
+                
+                                        // --- 3. Hitung total khatam SELURUH PROGRAM dari Supabase ---
+                                        // Query ringan: hanya ambil tanggal yang semua 30 peserta centang
+                                        // Menggunakan agregasi langsung di database, tidak tarik semua data
+                                        const { data: khatamDates, error: khatamError } = await window.supabaseClient
+                                            .from('daily_checks')
+                                            .select('check_date, participant_id')
+                                            .order('check_date');
+                
+                                        if (khatamError) {
+                                            console.warn('Khatam count query warning:', khatamError);
+                                        } else if (khatamDates) {
+                                            // Hitung per tanggal berapa peserta yang centang
+                                            const countPerDate = {};
+                                            khatamDates.forEach(({ check_date, participant_id }) => {
+                                                if (!countPerDate[check_date]) countPerDate[check_date] = new Set();
+                                                countPerDate[check_date].add(participant_id);
+                                            });
+                
+                                            // Tanggal khatam = semua 30 peserta centang
+                                            this.khatamHistory = {};
+                                            let totalKhatam = 0;
+                                            Object.entries(countPerDate).forEach(([date, ids]) => {
+                                                if (ids.size >= 30) {
+                                                    const monthKey = date.slice(0, 7);
+                                                    if (!this.khatamHistory[monthKey]) this.khatamHistory[monthKey] = [];
+                                                    this.khatamHistory[monthKey].push(date);
+                
+                                                    // Sync ke monthlyData juga
+                                                    if (!this.monthlyData[monthKey]) {
+                                                        this.monthlyData[monthKey] = { participantChecks: {}, khatamDays: [] };
+                                                    }
+                                                    if (!this.monthlyData[monthKey].khatamDays.includes(date)) {
+                                                        this.monthlyData[monthKey].khatamDays.push(date);
+                                                    }
+                                                    totalKhatam++;
+                                                }
+                                            });
+                
+                                            this.totalKhatamCount = totalKhatam;
+                                            console.log('✅ Total khatam sejak awal program:', totalKhatam);
+                                        }
+                
+                                        console.log('✅ Optimized load complete');
+                
+                                    } catch (error) {
+                                        console.error('❌ Error loading data from Supabase:', error);
+                                        throw error;
+                                    }
+                                },
 
                 loadDataFromLocal() {
                     try {
@@ -820,21 +823,80 @@
                     this.availableMonths = months;
                 },
 
-                updateMonthlyView() {
-                    // This function is called when user changes the selected month
-                    // It ensures the monthly data structure exists for the selected month
-                    if (!this.monthlyData[this.selectedMonth]) {
-                        this.monthlyData[this.selectedMonth] = {
-                            participantChecks: {},
-                            khatamDays: []
-                        };
-                        
-                        // Initialize all participants for this month
-                        this.participants.forEach(participant => {
-                            this.monthlyData[this.selectedMonth].participantChecks[participant.id] = [];
+                async updateMonthlyView() {
+                                    const month = this.selectedMonth;
+                
+                                    // Jika bulan ini belum pernah di-load dan Supabase terhubung, lazy load sekarang
+                                    if (!this.loadedMonths.has(month) && this.supabaseConnected) {
+                                        console.log('📦 Lazy loading month:', month);
+                                        this.isLoading = true;
+                                        this.loadingMessage = `Memuat data ${month}...`;
+                                        await this.loadMonthData(month);
+                                        this.isLoading = false;
+                                    }
+                
+                                    // Pastikan struktur data bulan ini ada
+                                    if (!this.monthlyData[month]) {
+                                        this.monthlyData[month] = {
+                                            participantChecks: {},
+                                            khatamDays: []
+                                        };
+                                        this.participants.forEach(p => {
+                                            this.monthlyData[month].participantChecks[p.id] = [];
+                                        });
+                                    }
+                                },
+
+                 async loadMonthData(monthKey) {
+                    try {
+                        const fromDate = monthKey + '-01';
+                        // Hari terakhir bulan tersebut
+                        const [year, month] = monthKey.split('-');
+                        const lastDay = new Date(year, month, 0).getDate();
+                        const toDate = `${monthKey}-${String(lastDay).padStart(2, '0')}`;
+ 
+                        const { data: checks, error } = await window.supabaseClient
+                            .from('daily_checks')
+                            .select('participant_id, check_date')
+                            .gte('check_date', fromDate)
+                            .lte('check_date', toDate)
+                            .order('check_date');
+ 
+                        if (error) throw error;
+ 
+                        if (!this.monthlyData[monthKey]) {
+                            this.monthlyData[monthKey] = { participantChecks: {}, khatamDays: [] };
+                        }
+ 
+                        checks.forEach(check => {
+                            const { check_date, participant_id } = check;
+ 
+                            if (!this.todayChecks[check_date]) this.todayChecks[check_date] = [];
+                            if (!this.todayChecks[check_date].includes(participant_id)) {
+                                this.todayChecks[check_date].push(participant_id);
+                            }
+ 
+                            if (!this.monthlyData[monthKey].participantChecks[participant_id]) {
+                                this.monthlyData[monthKey].participantChecks[participant_id] = [];
+                            }
+                            if (!this.monthlyData[monthKey].participantChecks[participant_id].includes(check_date)) {
+                                this.monthlyData[monthKey].participantChecks[participant_id].push(check_date);
+                            }
                         });
+ 
+                        // Sync khatamDays dari khatamHistory yang sudah dihitung
+                        if (this.khatamHistory[monthKey]) {
+                            this.monthlyData[monthKey].khatamDays = [...this.khatamHistory[monthKey]];
+                        }
+ 
+                        this.loadedMonths.add(monthKey);
+                        console.log('✅ Lazy loaded month', monthKey, ':', checks.length, 'records');
+ 
+                    } catch (error) {
+                        console.error('❌ Error lazy loading month', monthKey, ':', error);
                     }
                 },
+ 
 
                 getParticipantMonthlyCount(participantId) {
                     const monthData = this.monthlyData[this.selectedMonth];
@@ -847,6 +909,19 @@
                 getMonthlyKhatam() {
                     const monthData = this.monthlyData[this.selectedMonth];
                     return monthData ? monthData.khatamDays.length : 0;
+                },
+                
+                getTotalKhatamCount() {
+                    // Jika online, pakai data agregat dari Supabase (sudah dihitung saat startup)
+                    if (this.supabaseConnected && this.totalKhatamCount > 0) {
+                        return this.totalKhatamCount;
+                    }
+                    // Fallback: hitung dari semua monthlyData yang sudah ter-load (localStorage/offline)
+                    let total = 0;
+                    Object.values(this.monthlyData).forEach(monthData => {
+                        total += (monthData.khatamDays || []).length;
+                    });
+                    return total;
                 },
 
                 getTotalMonthlyChecks() {
