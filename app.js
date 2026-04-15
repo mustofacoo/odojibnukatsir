@@ -14,11 +14,7 @@
                 showAnnouncement: false,
                 showEditParticipant: false,
                 editingParticipant: { id: null, name: '' },
-                
-                // Supabase credentials (for debugging)
-                SUPABASE_URL: 'https://avbfccjifnptszchabjh.supabase.co',
-                SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YmZjY2ppZm5wdHN6Y2hhYmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2OTQyODMsImV4cCI6MjA2NzI3MDI4M30.Al8QBt2khiS35uG5IkGIJrLtAd1niWUFAbcsx_pBEgU',
-                
+                               
                 // Data peserta
                 participants: [
                     { id: 1, name: 'Peserta 1' }, { id: 2, name: 'Peserta 2' }, { id: 3, name: 'Peserta 3' }, { id: 4, name: 'Peserta 4' },
@@ -870,6 +866,55 @@
                 
                 return sorted;
             },
+
+            // Hitung berapa kali peserta sudah khatam (selesai 30 hari berturut tanpa bolong)
+getParticipantKhatamCount(participantId) {
+    // Kumpulkan semua tanggal centang peserta dari seluruh monthlyData
+    const allDates = new Set();
+    
+    Object.values(this.monthlyData).forEach(monthData => {
+        const checks = monthData.participantChecks?.[participantId] || [];
+        checks.forEach(date => allDates.add(date));
+    });
+    
+    if (allDates.size === 0) return 0;
+    
+    const startDate = new Date('2025-07-01');
+    const today = new Date(this.getTodayKey());
+    
+    // Hitung total hari program yang sudah berlalu
+    const totalDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    
+    let khatamCount = 0;
+    
+    // Cek setiap siklus 30 hari: hari ke-1..30, hari ke-31..60, dst.
+    for (let cycleStart = 0; cycleStart < totalDays; cycleStart += 30) {
+        const cycleEnd = Math.min(cycleStart + 29, totalDays - 1);
+        
+        // Hanya hitung siklus yang sudah lengkap 30 hari
+        if (cycleEnd - cycleStart < 29) break;
+        
+        let cycleComplete = true;
+        
+        for (let dayOffset = cycleStart; dayOffset <= cycleEnd; dayOffset++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + dayOffset);
+            const dateKey = new Intl.DateTimeFormat('sv-SE', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(date);
+            
+            if (!allDates.has(dateKey)) {
+                cycleComplete = false;
+                break;
+            }
+        }
+        
+        if (cycleComplete) khatamCount++;
+    }
+    
+    return khatamCount;
+},
             // --- FUNGSI TAMBAHAN BARU ---
                 async loadMotivations() {
                     try {
