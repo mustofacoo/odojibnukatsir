@@ -80,7 +80,7 @@
                 exportText: '',
                 
                 // Program start date
-                programStartDate: new Date('2025-10-01'),
+                programStartDate: new Date('2025-07-01'),
 
                 async init() {
                     console.log('🚀 Starting One Day One Juz App...');
@@ -583,7 +583,7 @@
                 },
 
                 goToProgramStart() {
-                    this.selectedDate = '2025-10-01'; // Tanggal mulai program
+                    this.selectedDate = '2025-07-01'; // Tanggal mulai program
                 },
 
                 goBackDays(days) {
@@ -627,7 +627,7 @@
                                     const targetDate = new Date(targetDateKey); 
                                     
                                     // 3. Buat tanggal mulai dengan cara yang sama (T00:00:00 zona waktu LOKAL)
-                                    const programStart = new Date('2025-10-01');
+                                    const programStart = new Date('2025-07-01');
                                     
                                     // 4. Hitung selisih waktu
                                     const diffTime = targetDate - programStart;
@@ -802,7 +802,7 @@
                 generateAvailableMonths() {
                     const months = [];
                     const currentDate = new Date();
-                    const startDate = new Date('2025-10-01');
+                    const startDate = new Date('2025-07-01');
                     const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 6, 1);
                     
                     let tempDate = new Date(startDate);
@@ -892,7 +892,7 @@ getParticipantKhatamCount(participantId) {
     
     if (allDates.size === 0) return 0;
     
-    const startDate = new Date('2025-10-01');
+    const startDate = new Date('2025-07-01');
     const today = new Date(this.getTodayKey());
     
     // Hitung total hari program yang sudah berlalu
