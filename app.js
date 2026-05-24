@@ -162,7 +162,7 @@
                         const testPromise = window.supabaseClient
                             .from('participants')
                             .select('count')
-                            .(1);
+                            .limit(1);
                         
                         const { data, error } = await Promise.race([testPromise, timeoutPromise]);
                         
@@ -200,7 +200,7 @@
                         const testPromise = window.supabaseClient
                             .from('participants')
                             .select('count')
-                            .(1);
+                            .limit(1);
                         
                         const { data, error } = await Promise.race([testPromise, timeoutPromise]);
                         
@@ -212,7 +212,7 @@
                         const { error: writeError } = await window.supabaseClient
                             .from('daily_checks')
                             .select('count')
-                            .(1);
+                            .limit(1);
                             
                         if (writeError) {
                             console.warn('Write test warning:', writeError.message);
@@ -251,15 +251,28 @@
                         }
 
                         // 🆕 Load ALL daily checks (tidak hanya hari ini)
-                        const { data: allChecks, error: allChecksError } = await window.supabaseClient
-                            .from('daily_checks')
-                            .select('participant_id, check_date')
-                            .order('check_date', { ascending: false })
-                            .limit(99000); // Ambil 2000 record terakhir
+                        let allChecks = [];
+                        let from = 0;
+                        const pageSize = 1000;
+
+                        while (true) {
+                            const { data, error } = await window.supabaseClient
+                                .from('daily_checks')
+                                .select('participant_id, check_date')
+                                .order('check_date', { ascending: true })
+                                .range(from, from + pageSize - 1);
                             
-                        if (allChecksError) {
-                            console.warn('All checks load warning:', allChecksError);
-                        } else if (allChecks) {
+                            if (error) { console.warn('All checks load warning:', error); break; }
+                            if (!data || data.length === 0) break;
+                            
+                            allChecks = allChecks.concat(data);
+                            console.log(`📥 Fetched ${allChecks.length} records...`);
+                            
+                            if (data.length < pageSize) break;
+                            from += pageSize;
+                        }
+
+                        if (allChecks.length > 0) {
                             // Reset struktur data
                             this.todayChecks = {};
                             this.monthlyData = {};
@@ -866,6 +879,55 @@
                 
                 return sorted;
             },
+
+            // Hitung berapa kali peserta sudah khatam (selesai 30 hari berturut tanpa bolong)
+getParticipantKhatamCount(participantId) {
+    // Kumpulkan semua tanggal centang peserta dari seluruh monthlyData
+    const allDates = new Set();
+    
+    Object.values(this.monthlyData).forEach(monthData => {
+        const checks = monthData.participantChecks?.[participantId] || [];
+        checks.forEach(date => allDates.add(date));
+    });
+    
+    if (allDates.size === 0) return 0;
+    
+    const startDate = new Date('2025-07-01');
+    const today = new Date(this.getTodayKey());
+    
+    // Hitung total hari program yang sudah berlalu
+    const totalDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    
+    let khatamCount = 0;
+    
+    // Cek setiap siklus 30 hari: hari ke-1..30, hari ke-31..60, dst.
+    for (let cycleStart = 0; cycleStart < totalDays; cycleStart += 30) {
+        const cycleEnd = Math.min(cycleStart + 29, totalDays - 1);
+        
+        // Hanya hitung siklus yang sudah lengkap 30 hari
+        if (cycleEnd - cycleStart < 29) break;
+        
+        let cycleComplete = true;
+        
+        for (let dayOffset = cycleStart; dayOffset <= cycleEnd; dayOffset++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + dayOffset);
+            const dateKey = new Intl.DateTimeFormat('sv-SE', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(date);
+            
+            if (!allDates.has(dateKey)) {
+                cycleComplete = false;
+                break;
+            }
+        }
+        
+        if (cycleComplete) khatamCount++;
+    }
+    
+    return khatamCount;
+},
             // --- FUNGSI TAMBAHAN BARU ---
                 async loadMotivations() {
                     try {
@@ -1027,7 +1089,7 @@
                         const isCompleted = this.isCompleted(participant.id);
                         
                         const participantInfo = {
-                            id: participant.id,
+                            id: participant.id,  
                             name: participant.name,
                             juz: juzNumber,
                             juzName: juzDetail.name,
@@ -1041,11 +1103,12 @@
                             pendingParticipants.push(participantInfo);
                         }
                     });
-                    
-                    // SESUDAH — tambahkan 2 baris sorting INI tepat sebelum baris exportText di atas
+
+                    // TAMBAHKAN 2 baris ini sebelum: let exportText = ...
                     completedParticipants.sort((a, b) => this.getParticipantMonthlyCount(b.id) - this.getParticipantMonthlyCount(a.id));
                     pendingParticipants.sort((a, b) => this.getParticipantMonthlyCount(b.id) - this.getParticipantMonthlyCount(a.id));
 
+                    
                     let exportText = `*BISMILLAH ISTIQOMAH ONE DAY ONE JUZ*\n`;
                     exportText += `${dateStr}\n`;
                     exportText += `Update: ${timeStr} WIB\n`;
@@ -1065,8 +1128,8 @@
                     if (completedParticipants.length > 0) {
                         exportText += `*SUDAH SELESAI (${completedParticipants.length})*\n`;
                         completedParticipants.forEach(p => {
-                            const totalBulan = this.getParticipantMonthlyCount(p.id);
-                            exportText += ` ${p.name} - Juz ${p.juz} (${totalBulan}x bulan ini)\n`;
+                            const total = this.getParticipantMonthlyCount(p.id);
+                            exportText += ` ${p.name} - Juz ${p.juz} (${total}x bulan ini)\n`;
                         });
                         exportText += `\n`;
                     }
@@ -1074,8 +1137,8 @@
                     if (pendingParticipants.length > 0) {
                         exportText += `*BELUM SELESAI (${pendingParticipants.length})*\n`;
                         pendingParticipants.forEach(p => {
-                            const totalBulan = this.getParticipantMonthlyCount(p.id);
-                            exportText += ` ${p.name} - Juz ${p.juz} (${totalBulan}x bulan ini)\n`;
+                            const total = this.getParticipantMonthlyCount(p.id);
+                            exportText += ` ${p.name} - Juz ${p.juz} (${total}x bulan ini)\n`;
                         });
                     }
                     
