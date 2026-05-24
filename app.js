@@ -1,5 +1,4 @@
-
-        function quranTracker() {
+function quranTracker() {
             return {
                 // Connection state
                 connectionStatus: 'connecting',
@@ -10,10 +9,12 @@
                 
                 // UI state
                 isLoading: true,
+                isSaving: false, // 🆕 Flag khusus untuk centang, agar tidak freeze seluruh halaman
                 loadingMessage: 'Memuat aplikasi...',
                 showAnnouncement: false,
                 showEditParticipant: false,
                 editingParticipant: { id: null, name: '' },
+                lastRefresh: '', // 🆕 Waktu terakhir refresh data
                                
                 // Data peserta
                 participants: [
@@ -88,22 +89,25 @@
                     this.loadingMessage = 'Memulai aplikasi...';
                     
                     try {
-                        // Test Supabase connection with better timeout
                         this.loadingMessage = 'Bismillaah...';
                         await this.testSupabaseConnectionInit();
                         
                         if (this.supabaseConnected) {
-                            // Load data from Supabase
                             this.loadingMessage = 'Memuat data...';
                             await this.loadDataFromSupabase();
                             this.connectionStatus = 'online';
+                            // 🆕 Set waktu refresh pertama
+                            this.lastRefresh = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
                             console.log('✅ Supabase mode activated');
                         } else {
-                            // Fallback to localStorage
                             this.loadingMessage = 'Mode offline - memuat data lokal...';
                             this.connectionStatus = 'offline';
                             this.loadDataFromLocal();
                             console.log('📱 Offline mode activated');
+                            // 🆕 Peringatan saat fallback offline
+                            setTimeout(() => {
+                                alert('⚠️ Koneksi ke server gagal. Aplikasi berjalan dalam mode OFFLINE.\n\nData centang mungkin tidak tersinkron. Pastikan internet stabil lalu refresh halaman.');
+                            }, 1000);
                         }
                         
                     } catch (error) {
@@ -111,23 +115,23 @@
                         this.connectionStatus = 'offline';
                         this.supabaseConnected = false;
                         this.loadDataFromLocal();
+                        // 🆕 Peringatan saat fallback offline karena error
+                        setTimeout(() => {
+                            alert('⚠️ Koneksi ke server gagal. Aplikasi berjalan dalam mode OFFLINE.\n\nData centang mungkin tidak tersinkron. Pastikan internet stabil lalu refresh halaman.');
+                        }, 1000);
                     }
                     
-                    // Check announcement
                     this.loadingMessage = 'Menyiapkan pengumuman...';
                     this.checkAnnouncementStatus();
                     
-                    // Setup months
                     this.loadingMessage = 'Menyiapkan data bulanan...';
                     this.generateAvailableMonths();
                     this.selectedMonth = this.getCurrentMonth();
-                    this.selectedDate = this.getTodayKey(); // Set default ke hari ini
+                    this.selectedDate = this.getTodayKey();
                     
-                    // Initialize monthly data structure
                     this.loadingMessage = 'Menginisialisasi struktur data bulanan...';
                     this.initializeMonthlyData();
                     
-                    // Final setup
                     this.loadingMessage = 'Menyelesaikan setup...';
                     await this.delay(500);
                     
@@ -141,7 +145,6 @@
 
                 async testSupabaseConnectionInit() {
                     try {
-                        // Wait for Supabase to be available
                         let attempts = 0;
                         while (!window.supabaseClient && attempts < 20) {
                             await this.delay(100);
@@ -154,7 +157,6 @@
                         
                         console.log('🧪 Testing Supabase connection...');
                         
-                        // Test with shorter timeout
                         const timeoutPromise = new Promise((_, reject) =>
                             setTimeout(() => reject(new Error('Connection timeout (5s)')), 5000)
                         );
@@ -196,7 +198,6 @@
                             setTimeout(() => reject(new Error('Timeout setelah 10 detik')), 10000)
                         );
                         
-                        // Test basic connection
                         const testPromise = window.supabaseClient
                             .from('participants')
                             .select('count')
@@ -208,7 +209,6 @@
                             throw new Error(`Database error: ${error.message}`);
                         }
                         
-                        // Test write permission
                         const { error: writeError } = await window.supabaseClient
                             .from('daily_checks')
                             .select('count')
@@ -232,12 +232,10 @@
                     }
                 },
 
-                // 🔧 FIXED: Load ALL historical data from Supabase
                 async loadDataFromSupabase() {
                     try {
                         console.log('📥 Loading data from Supabase...');
                         
-                        // Load participants
                         const { data: participants, error: participantsError } = await window.supabaseClient
                             .from('participants')
                             .select('*')
@@ -250,7 +248,6 @@
                             console.log('✅ Participants loaded:', participants.length);
                         }
 
-                        // 🆕 Load ALL daily checks (tidak hanya hari ini)
                         let allChecks = [];
                         let from = 0;
                         const pageSize = 1000;
@@ -273,19 +270,17 @@
                         }
 
                         if (allChecks.length > 0) {
-                            // Reset struktur data
                             this.todayChecks = {};
                             this.monthlyData = {};
                             
                             console.log('🔄 Reconstructing data from', allChecks.length, 'records...');
                             
-                            // Rekonstruksi data dari semua centang
                             allChecks.forEach(check => {
                                 const checkDate = check.check_date;
-                                const participantId = check.participant_id;
-                                const monthKey = checkDate.slice(0, 7); // "2025-07"
+                                // 🔧 FIX: Paksa konversi ke Number agar tidak ada type mismatch
+                                const participantId = Number(check.participant_id);
+                                const monthKey = checkDate.slice(0, 7);
                                 
-                                // Tambahkan ke todayChecks
                                 if (!this.todayChecks[checkDate]) {
                                     this.todayChecks[checkDate] = [];
                                 }
@@ -293,7 +288,6 @@
                                     this.todayChecks[checkDate].push(participantId);
                                 }
                                 
-                                // Tambahkan ke monthlyData
                                 if (!this.monthlyData[monthKey]) {
                                     this.monthlyData[monthKey] = {
                                         participantChecks: {},
@@ -313,7 +307,6 @@
                             console.log('✅ All checks loaded and reconstructed:', allChecks.length);
                         }
 
-                        // Load khatam days dari monthly_records
                         const { data: monthlyRecords, error: monthlyError } = await window.supabaseClient
                             .from('monthly_records')
                             .select('*')
@@ -351,19 +344,16 @@
                     try {
                         console.log('📦 Loading data from localStorage...');
                         
-                        // Load today's checks
                         const todayChecks = localStorage.getItem('quranTrackerTodayChecks');
                         if (todayChecks) {
                             this.todayChecks = JSON.parse(todayChecks);
                         }
                         
-                        // Load monthly data
                         const monthlyData = localStorage.getItem('quranTrackerMonthlyData');
                         if (monthlyData) {
                             this.monthlyData = JSON.parse(monthlyData);
                         }
                         
-                        // Load participants
                         const participants = localStorage.getItem('quranTrackerParticipants');
                         if (participants) {
                             this.participants = JSON.parse(participants);
@@ -381,14 +371,12 @@
                 initializeMonthlyData() {
                     const currentMonth = this.getCurrentMonth();
                     
-                    // Initialize current month if not exists
                     if (!this.monthlyData[currentMonth]) {
                         this.monthlyData[currentMonth] = {
                             participantChecks: {},
                             khatamDays: []
                         };
                         
-                        // Initialize all participants for current month
                         this.participants.forEach(participant => {
                             this.monthlyData[currentMonth].participantChecks[participant.id] = [];
                         });
@@ -427,7 +415,6 @@
                     if (index !== -1) {
                         this.participants[index].name = this.editingParticipant.name.trim();
                         
-                        // Save to Supabase if connected
                         if (this.supabaseConnected) {
                             try {
                                 const { error } = await window.supabaseClient
@@ -449,18 +436,15 @@
                     }
                 },
 
-                // 🆕 Quick edit participant (untuk admin)
                 quickEditParticipant(participant) {
                     this.editParticipant(participant);
                 },
 
-                // 🆕 Update participant name inline
                 async updateParticipantName(participantId, newName) {
                     const trimmedName = newName.trim();
                     
                     if (!trimmedName) {
                         alert('❌ Nama peserta tidak boleh kosong!');
-                        // Reload to reset the input
                         location.reload();
                         return;
                     }
@@ -469,19 +453,16 @@
                     if (index !== -1) {
                         const oldName = this.participants[index].name;
                         
-                        // Only update if name actually changed
                         if (oldName === trimmedName) {
                             return;
                         }
                         
                         this.participants[index].name = trimmedName;
                         
-                        // Show loading
                         this.isLoading = true;
                         this.loadingMessage = 'Menyimpan perubahan...';
                         
                         try {
-                            // Save to Supabase if connected
                             if (this.supabaseConnected) {
                                 const { error } = await window.supabaseClient
                                     .from('participants')
@@ -492,22 +473,19 @@
                                 console.log('✅ Participant name updated in Supabase');
                             }
                             
-                            // Save to localStorage
                             this.saveData();
-                            
                             alert(`✅ Nama berhasil diubah!\n\nDari: ${oldName}\nJadi: ${trimmedName}`);
                             
                         } catch (error) {
                             console.error('Error updating participant:', error);
                             alert('⚠️ Gagal menyimpan ke server, tersimpan di local saja');
-                            this.saveData(); // Still save to localStorage
+                            this.saveData();
                         }
                         
                         this.isLoading = false;
                     }
                 },
 
-                // 🔧 FIXED: Better timezone handling
                 getCurrentDate() {
                     return new Intl.DateTimeFormat('id-ID', {
                         timeZone: 'Asia/Jakarta',
@@ -534,7 +512,6 @@
                         day: '2-digit'
                     }).format(new Date());
                 },
-
 
                 getYesterdayKey() {
                     const yesterday = new Date();
@@ -569,7 +546,6 @@
                         day: '2-digit'
                     }).format(date);
                     
-                    // Jangan bisa next melewati hari ini
                     if (nextDate > today) return today;
                     return nextDate;
                 },
@@ -583,7 +559,7 @@
                 },
 
                 goToProgramStart() {
-                    this.selectedDate = '2025-07-01'; // Tanggal mulai program
+                    this.selectedDate = '2025-07-01';
                 },
 
                 goBackDays(days) {
@@ -616,25 +592,19 @@
                     return new Date(year, month, 0).getDate();
                 },
 
+                // 🔧 FIX: Amankan dari bug UTC — baca string YYYY-MM-DD sebagai waktu lokal
                 getDaysSinceStart() {
-                                    // 1. Gunakan tanggal yang sedang dipilih (selectedDate), BUKAN tanggal hari ini
-                                    // Jika selectedDate masih kosong (saat init), gunakan getTodayKey()
-                                    const targetDateKey = this.selectedDate || this.getTodayKey();
-                                    
-                                    // 2. Buat objek Date dari tanggal tersebut.
-                                    // Format 'sv-SE' (YYYY-MM-DD) aman untuk konstruktor Date
-                                    // Ini akan membuat Date di T00:00:00 zona waktu LOKAL.
-                                    const targetDate = new Date(targetDateKey); 
-                                    
-                                    // 3. Buat tanggal mulai dengan cara yang sama (T00:00:00 zona waktu LOKAL)
-                                    const programStart = new Date('2025-07-01');
-                                    
-                                    // 4. Hitung selisih waktu
-                                    const diffTime = targetDate - programStart;
-                                    
-                                    // 5. Bagi dengan (1000 * 60 * 60 * 24) dan bulatkan ke bawah
-                                    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                                },
+                    const targetDateKey = this.selectedDate || this.getTodayKey();
+                    
+                    // Pecah string agar dibaca sebagai tanggal lokal, bukan UTC tengah malam
+                    const [year, month, day] = targetDateKey.split('-').map(Number);
+                    const targetDate = new Date(year, month - 1, day);
+                    
+                    const programStart = new Date(2025, 6, 1); // 2025-07-01 (month 0-indexed)
+                    
+                    const diffTime = targetDate - programStart;
+                    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                },
 
                 getRotatedParticipants() {
                     const daysSinceStart = this.getDaysSinceStart();
@@ -652,7 +622,6 @@
                         name: 'Unknown', 
                         content: 'Unknown', 
                         pages: 'Unknown',
-
                     };
                 },
 
@@ -661,91 +630,93 @@
                     return this.todayChecks[targetDate]?.includes(participantId) || false;
                 },
 
-                // 🔧 FIXED: Better toggle check with guaranteed monthly data persistence
+                // 🔧 FIXED: Pessimistic update + isSaving flag + upsert + retry
                 async toggleCheck(participantId) {
-                    const targetDate = this.selectedDate || this.getTodayKey(); // Gunakan tanggal yang dipilih
-                    const currentMonth = targetDate.slice(0, 7); // Extract "2025-07"
-                    
-                    // Debug log
-                    console.log('🔄 Toggle check:', { participantId, targetDate, currentMonth });
-                    
-                    // Ensure struktur data exist
-                    if (!this.todayChecks[targetDate]) {
-                        this.todayChecks[targetDate] = [];
+                    // 🔒 Cegah klik ganda
+                    if (this.isSaving) return;
+
+                    // 🔒 Blokir centang saat offline
+                    if (!this.supabaseConnected) {
+                        alert('⚠️ Anda sedang offline. Fitur centang dinonaktifkan sementara hingga internet kembali online.');
+                        return;
                     }
-                    
-                    if (!this.monthlyData[currentMonth]) {
-                        this.monthlyData[currentMonth] = {
-                            participantChecks: {},
-                            khatamDays: []
-                        };
-                    }
-                    
-                    if (!this.monthlyData[currentMonth].participantChecks[participantId]) {
-                        this.monthlyData[currentMonth].participantChecks[participantId] = [];
-                    }
-                    
+
+                    const targetDate = this.selectedDate || this.getTodayKey();
+                    const currentMonth = targetDate.slice(0, 7);
+
+                    if (!this.todayChecks[targetDate]) this.todayChecks[targetDate] = [];
                     const index = this.todayChecks[targetDate].indexOf(participantId);
                     const isCurrentlyChecked = index > -1;
-                    
-                    // Update checks untuk tanggal yang dipilih
-                    if (isCurrentlyChecked) {
-                        this.todayChecks[targetDate].splice(index, 1);
-                    } else {
-                        this.todayChecks[targetDate].push(participantId);
-                    }
-                    
-                    // Update monthly data
-                    const monthlyChecks = this.monthlyData[currentMonth].participantChecks[participantId];
-                    const monthlyIndex = monthlyChecks.indexOf(targetDate);
-                    
-                    if (isCurrentlyChecked) {
-                        if (monthlyIndex > -1) {
-                            monthlyChecks.splice(monthlyIndex, 1);
-                        }
-                    } else {
-                        if (monthlyIndex === -1) {
-                            monthlyChecks.push(targetDate);
-                            monthlyChecks.sort();
-                        }
-                    }
-                    
-                    // Update khatam status
-                    this.updateKhatamStatus(targetDate, currentMonth);
-                    
-                    // Save
-                    this.saveData();
-                    
-                    // Save to Supabase
-                    if (this.supabaseConnected) {
-                        try {
-                            if (isCurrentlyChecked) {
-                                const { error: deleteError } = await window.supabaseClient
+
+                    // 🔒 Aktifkan flag saving (bukan isLoading agar halaman tidak freeze)
+                    this.isSaving = true;
+
+                    try {
+                        if (isCurrentlyChecked) {
+                            // --- HAPUS dari Supabase dulu ---
+                            const { error } = await window.supabaseClient
+                                .from('daily_checks')
+                                .delete()
+                                .eq('participant_id', participantId)
+                                .eq('check_date', targetDate);
+
+                            if (error) throw error;
+
+                        } else {
+                            // --- INSERT ke Supabase dulu (upsert agar aman dari duplicate) ---
+                            const tryUpsert = async (attempt = 1) => {
+                                const { error } = await window.supabaseClient
                                     .from('daily_checks')
-                                    .delete()
-                                    .eq('participant_id', participantId)
-                                    .eq('check_date', targetDate);
-                                    
-                                if (deleteError) throw deleteError;
-                                console.log('✅ Check removed from Supabase');
-                            } else {
-                                const { error: insertError } = await window.supabaseClient
-                                    .from('daily_checks')
-                                    .insert({
-                                        participant_id: participantId,
-                                        check_date: targetDate
-                                    });
-                                    
-                                if (insertError) throw insertError;
-                                console.log('✅ Check added to Supabase');
+                                    .upsert(
+                                        { participant_id: participantId, check_date: targetDate },
+                                        { onConflict: 'participant_id,check_date' }
+                                    );
+                                // Retry 1x jika gagal
+                                if (error && attempt < 2) {
+                                    console.warn(`⚠️ Upsert gagal, retry ke-${attempt}...`);
+                                    await this.delay(1000);
+                                    return tryUpsert(attempt + 1);
+                                }
+                                if (error) throw error;
+                            };
+                            await tryUpsert();
+                        }
+
+                        // ✅ SERVER SUKSES — baru update state lokal
+                        if (!this.monthlyData[currentMonth]) {
+                            this.monthlyData[currentMonth] = { participantChecks: {}, khatamDays: [] };
+                        }
+                        if (!this.monthlyData[currentMonth].participantChecks[participantId]) {
+                            this.monthlyData[currentMonth].participantChecks[participantId] = [];
+                        }
+
+                        if (isCurrentlyChecked) {
+                            // Hapus dari state lokal
+                            this.todayChecks[targetDate].splice(index, 1);
+                            const mIndex = this.monthlyData[currentMonth].participantChecks[participantId].indexOf(targetDate);
+                            if (mIndex > -1) this.monthlyData[currentMonth].participantChecks[participantId].splice(mIndex, 1);
+                        } else {
+                            // Tambah ke state lokal
+                            this.todayChecks[targetDate].push(participantId);
+                            if (!this.monthlyData[currentMonth].participantChecks[participantId].includes(targetDate)) {
+                                this.monthlyData[currentMonth].participantChecks[participantId].push(targetDate);
+                                this.monthlyData[currentMonth].participantChecks[participantId].sort();
                             }
-                        } catch (error) {
-                            console.error('❌ Supabase sync failed:', error);
-                            alert('⚠️ Sinkronisasi Supabase gagal, tapi data tersimpan di lokal.');
                         }
+
+                        this.updateKhatamStatus(targetDate, currentMonth);
+                        this.saveData(); // Backup ke localStorage
+
+                        console.log('✅ Toggle complete:', { participantId, targetDate, isCurrentlyChecked });
+
+                    } catch (error) {
+                        console.error('❌ Supabase sync failed:', error);
+                        alert('❌ Gagal menyimpan! Koneksi internet tidak stabil. Halaman akan memuat ulang data dari server.');
+                        // Ambil data ulang dari server agar tampilan tidak menipu user
+                        await this.loadDataFromSupabase();
+                    } finally {
+                        this.isSaving = false;
                     }
-                    
-                    console.log('✅ Toggle complete. Monthly data:', this.monthlyData[currentMonth].participantChecks[participantId]);
                 },
 
                 updateKhatamStatus(date, month) {
@@ -754,10 +725,8 @@
                     const isKhatamDay = khatamDays.includes(date);
                     
                     if (completedCount === 30 && !isKhatamDay) {
-                        // Add khatam day
                         khatamDays.push(date);
                         
-                        // Save to Supabase if connected
                         if (this.supabaseConnected) {
                             window.supabaseClient
                                 .from('monthly_records')
@@ -773,13 +742,11 @@
                         }
                         
                     } else if (completedCount < 30 && isKhatamDay) {
-                        // Remove khatam day
                         const index = khatamDays.indexOf(date);
                         if (index > -1) {
                             khatamDays.splice(index, 1);
                         }
                         
-                        // Remove from Supabase if connected
                         if (this.supabaseConnected) {
                             window.supabaseClient
                                 .from('monthly_records')
@@ -821,15 +788,12 @@
                 },
 
                 updateMonthlyView() {
-                    // This function is called when user changes the selected month
-                    // It ensures the monthly data structure exists for the selected month
                     if (!this.monthlyData[this.selectedMonth]) {
                         this.monthlyData[this.selectedMonth] = {
                             participantChecks: {},
                             khatamDays: []
                         };
                         
-                        // Initialize all participants for this month
                         this.participants.forEach(participant => {
                             this.monthlyData[this.selectedMonth].participantChecks[participant.id] = [];
                         });
@@ -861,77 +825,68 @@
                 },
 
                 getSortedParticipants() {
-                // Buat copy array participants agar tidak mengubah data asli
-                const sorted = [...this.participants];
-                
-                // Sort berdasarkan jumlah centang di bulan yang dipilih (descending)
-                sorted.sort((a, b) => {
-                    const countA = this.getParticipantMonthlyCount(a.id);
-                    const countB = this.getParticipantMonthlyCount(b.id);
+                    const sorted = [...this.participants];
                     
-                    // Jika jumlah centang sama, sort berdasarkan nama (ascending)
-                    if (countB === countA) {
-                        return a.name.localeCompare(b.name);
+                    sorted.sort((a, b) => {
+                        const countA = this.getParticipantMonthlyCount(a.id);
+                        const countB = this.getParticipantMonthlyCount(b.id);
+                        
+                        if (countB === countA) {
+                            return a.name.localeCompare(b.name);
+                        }
+                        
+                        return countB - countA;
+                    });
+                    
+                    return sorted;
+                },
+
+                getParticipantKhatamCount(participantId) {
+                    const allDates = new Set();
+                    
+                    Object.values(this.monthlyData).forEach(monthData => {
+                        const checks = monthData.participantChecks?.[participantId] || [];
+                        checks.forEach(date => allDates.add(date));
+                    });
+                    
+                    if (allDates.size === 0) return 0;
+                    
+                    const startDate = new Date(2025, 6, 1);
+                    const today = new Date(this.getTodayKey());
+                    
+                    const totalDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    let khatamCount = 0;
+                    
+                    for (let cycleStart = 0; cycleStart < totalDays; cycleStart += 30) {
+                        const cycleEnd = Math.min(cycleStart + 29, totalDays - 1);
+                        
+                        if (cycleEnd - cycleStart < 29) break;
+                        
+                        let cycleComplete = true;
+                        
+                        for (let dayOffset = cycleStart; dayOffset <= cycleEnd; dayOffset++) {
+                            const date = new Date(2025, 6, 1);
+                            date.setDate(date.getDate() + dayOffset);
+                            const dateKey = new Intl.DateTimeFormat('sv-SE', {
+                                timeZone: 'Asia/Jakarta',
+                                year: 'numeric', month: '2-digit', day: '2-digit'
+                            }).format(date);
+                            
+                            if (!allDates.has(dateKey)) {
+                                cycleComplete = false;
+                                break;
+                            }
+                        }
+                        
+                        if (cycleComplete) khatamCount++;
                     }
                     
-                    return countB - countA; // Descending (terbanyak di atas)
-                });
-                
-                return sorted;
-            },
+                    return khatamCount;
+                },
 
-            // Hitung berapa kali peserta sudah khatam (selesai 30 hari berturut tanpa bolong)
-getParticipantKhatamCount(participantId) {
-    // Kumpulkan semua tanggal centang peserta dari seluruh monthlyData
-    const allDates = new Set();
-    
-    Object.values(this.monthlyData).forEach(monthData => {
-        const checks = monthData.participantChecks?.[participantId] || [];
-        checks.forEach(date => allDates.add(date));
-    });
-    
-    if (allDates.size === 0) return 0;
-    
-    const startDate = new Date('2025-07-01');
-    const today = new Date(this.getTodayKey());
-    
-    // Hitung total hari program yang sudah berlalu
-    const totalDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
-    
-    let khatamCount = 0;
-    
-    // Cek setiap siklus 30 hari: hari ke-1..30, hari ke-31..60, dst.
-    for (let cycleStart = 0; cycleStart < totalDays; cycleStart += 30) {
-        const cycleEnd = Math.min(cycleStart + 29, totalDays - 1);
-        
-        // Hanya hitung siklus yang sudah lengkap 30 hari
-        if (cycleEnd - cycleStart < 29) break;
-        
-        let cycleComplete = true;
-        
-        for (let dayOffset = cycleStart; dayOffset <= cycleEnd; dayOffset++) {
-            const date = new Date(startDate);
-            date.setDate(date.getDate() + dayOffset);
-            const dateKey = new Intl.DateTimeFormat('sv-SE', {
-                timeZone: 'Asia/Jakarta',
-                year: 'numeric', month: '2-digit', day: '2-digit'
-            }).format(date);
-            
-            if (!allDates.has(dateKey)) {
-                cycleComplete = false;
-                break;
-            }
-        }
-        
-        if (cycleComplete) khatamCount++;
-    }
-    
-    return khatamCount;
-},
-            // --- FUNGSI TAMBAHAN BARU ---
                 async loadMotivations() {
                     try {
-                        // Ambil data dari file json
                         const response = await fetch('motivasi.json');
                         if (!response.ok) throw new Error('Gagal load motivasi');
                         
@@ -939,7 +894,6 @@ getParticipantKhatamCount(participantId) {
                         this.randomizeMotivation();
                     } catch (error) {
                         console.log('Menggunakan motivasi default', error);
-                        // Fallback jika file json gagal dimuat
                         this.currentMotivation = '"Sebaik-baik kalian adalah yang mempelajari Al-Quran dan mengajarkannya."';
                     }
                 },
@@ -950,10 +904,8 @@ getParticipantKhatamCount(participantId) {
                         this.currentMotivation = this.motivations[randomIndex];
                     }
                 },
-                // ---------------------------
 
                 async saveData() {
-                    // Always save to localStorage as backup
                     try {
                         localStorage.setItem('quranTrackerTodayChecks', JSON.stringify(this.todayChecks));
                         localStorage.setItem('quranTrackerMonthlyData', JSON.stringify(this.monthlyData));
@@ -964,7 +916,25 @@ getParticipantKhatamCount(participantId) {
                     }
                 },
 
-                // 🆕 DEBUG: Debug function untuk cek data
+                // 🆕 Refresh data dari server tanpa reload halaman
+                async refreshData() {
+                    if (!this.supabaseConnected) {
+                        alert('❌ Tidak terhubung ke server. Periksa koneksi internet Anda.');
+                        return;
+                    }
+                    this.isLoading = true;
+                    this.loadingMessage = 'Mengambil data terbaru dari server...';
+                    try {
+                        await this.loadDataFromSupabase();
+                        this.lastRefresh = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
+                        console.log('✅ Data refreshed at', this.lastRefresh);
+                    } catch(e) {
+                        alert('❌ Gagal refresh data: ' + e.message);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
                 debugMonthlyData() {
                     const currentMonth = this.getCurrentMonth();
                     const today = this.getTodayKey();
@@ -973,14 +943,10 @@ getParticipantKhatamCount(participantId) {
                     debugInfo += `Current month: ${currentMonth}\n`;
                     debugInfo += `Today: ${today}\n`;
                     debugInfo += `Today completed: ${this.getTodayCompleted()}\n\n`;
-                    
                     debugInfo += 'Monthly data structure:\n';
                     debugInfo += JSON.stringify(this.monthlyData, null, 2) + '\n\n';
-                    
                     debugInfo += 'Today checks:\n';
                     debugInfo += JSON.stringify(this.todayChecks, null, 2) + '\n\n';
-                    
-                    // Check specific participants
                     debugInfo += 'Sample participant checks:\n';
                     if (this.monthlyData[currentMonth] && this.monthlyData[currentMonth].participantChecks[1]) {
                         debugInfo += `Participant 1: ${JSON.stringify(this.monthlyData[currentMonth].participantChecks[1])}\n`;
@@ -988,7 +954,6 @@ getParticipantKhatamCount(participantId) {
                     if (this.monthlyData[currentMonth] && this.monthlyData[currentMonth].participantChecks[2]) {
                         debugInfo += `Participant 2: ${JSON.stringify(this.monthlyData[currentMonth].participantChecks[2])}\n`;
                     }
-                    
                     debugInfo += `\nSupabase connected: ${this.supabaseConnected}\n`;
                     debugInfo += `Connection status: ${this.connectionStatus}`;
                     
@@ -996,7 +961,6 @@ getParticipantKhatamCount(participantId) {
                     console.log(debugInfo);
                 },
 
-                // 🆕 FORCE SYNC: Force sync all data to Supabase
                 async forceSyncAllData() {
                     if (!this.supabaseConnected) {
                         alert('❌ Supabase tidak terhubung');
@@ -1007,21 +971,19 @@ getParticipantKhatamCount(participantId) {
                     this.loadingMessage = 'Force syncing all data...';
                     
                     try {
-                        // Sync semua todayChecks ke daily_checks
                         let syncCount = 0;
                         for (const [date, participantIds] of Object.entries(this.todayChecks)) {
                             for (const participantId of participantIds) {
                                 await window.supabaseClient
                                     .from('daily_checks')
-                                    .upsert({
-                                        participant_id: participantId,
-                                        check_date: date
-                                    });
+                                    .upsert(
+                                        { participant_id: participantId, check_date: date },
+                                        { onConflict: 'participant_id,check_date' }
+                                    );
                                 syncCount++;
                             }
                         }
                         
-                        // Sync semua khatam days
                         let khatamCount = 0;
                         for (const [monthKey, monthData] of Object.entries(this.monthlyData)) {
                             for (const khatamDate of monthData.khatamDays) {
@@ -1047,7 +1009,6 @@ getParticipantKhatamCount(participantId) {
                     this.isLoading = false;
                 },
 
-                // Admin functions
                 adminLogin() {
                     if (this.adminCredentials.password === 'odojqu') {
                         this.isAdmin = true;
@@ -1065,7 +1026,6 @@ getParticipantKhatamCount(participantId) {
                 },
 
                 generateWhatsAppExport() {
-                    const jakartaTime = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' });
                     const dateStr = new Date().toLocaleDateString('id-ID', {
                         timeZone: 'Asia/Jakarta',
                         weekday: 'long',
@@ -1089,7 +1049,7 @@ getParticipantKhatamCount(participantId) {
                         const isCompleted = this.isCompleted(participant.id);
                         
                         const participantInfo = {
-                            id: participant.id,  
+                            id: participant.id,
                             name: participant.name,
                             juz: juzNumber,
                             juzName: juzDetail.name,
@@ -1104,20 +1064,14 @@ getParticipantKhatamCount(participantId) {
                         }
                     });
 
-                    // TAMBAHKAN 2 baris ini sebelum: let exportText = ...
+                    // Sort berdasarkan centang bulan ini (terbanyak di atas)
                     completedParticipants.sort((a, b) => this.getParticipantMonthlyCount(b.id) - this.getParticipantMonthlyCount(a.id));
                     pendingParticipants.sort((a, b) => this.getParticipantMonthlyCount(b.id) - this.getParticipantMonthlyCount(a.id));
-
                     
                     let exportText = `*BISMILLAH ISTIQOMAH ONE DAY ONE JUZ*\n`;
                     exportText += `${dateStr}\n`;
                     exportText += `Update: ${timeStr} WIB\n`;
-               //     exportText += `Sync: ${this.supabaseConnected ? 'Database terhubung' : 'Tidak terhubung'}\n`;
                     exportText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-                    
-               //     exportText += `*RINGKASAN PROGRESS*\n`;
-               //     exportText += `Selesai: ${completedParticipants.length}/30\n`;
-               //     exportText += `Belum Selesai: ${pendingParticipants.length}/30\n`;
                     
                     if (completedParticipants.length === 30) {
                         exportText += `*ALHAMDULILLAH KHATAM HARI INI!* \n`;
@@ -1145,23 +1099,17 @@ getParticipantKhatamCount(participantId) {
                     exportText += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
                     exportText += `💝 Semoga Allah mudahkan kita semua dalam membaca Al-Qur'an\n`;
                     exportText += `🤲 Barakallahu fiikum\n\n`;
-             //       exportText += `#OneDayOneJuz #AlQuranTracker #Khatam`;
                     
                     this.exportText = exportText;
                 },
 
-                // --- KODE BARU ---
-                // Fungsi cepat untuk generate dan copy langsung
                 quickExportAndCopy() {
-                    // 1. Generate text laporan
                     this.generateWhatsAppExport();
                     
-                    // 2. Tunggu sebentar (nextTick) agar data tersimpan variable, lalu copy
                     this.$nextTick(() => {
                         this.copyToClipboard();
                     });
                 },
-                // ----------------
 
                 copyToClipboard() {
                     if (navigator.clipboard) {
@@ -1201,13 +1149,11 @@ getParticipantKhatamCount(participantId) {
                     this.isLoading = true;
 
                     try {
-                        // Reset all data
                         this.todayChecks = {};
                         this.monthlyData = {};
                         this.exportText = '';
                         this.debugResult = '';
 
-                        // Reset participants to default
                         this.participants = [
                             { id: 1, name: 'Ahmad' }, { id: 2, name: 'Fatimah' }, { id: 3, name: 'Abdullah' }, { id: 4, name: 'Khadijah' },
                             { id: 5, name: 'Umar' }, { id: 6, name: 'Aisha' }, { id: 7, name: 'Ali' }, { id: 8, name: 'Zainab' },
@@ -1219,7 +1165,6 @@ getParticipantKhatamCount(participantId) {
                             { id: 29, name: 'Sa\'d' }, { id: 30, name: 'Habibah' }
                         ];
 
-                        // Clear localStorage
                         localStorage.removeItem('quranTrackerTodayChecks');
                         localStorage.removeItem('quranTrackerMonthlyData');
                         localStorage.removeItem('quranTrackerParticipants');
@@ -1237,4 +1182,3 @@ getParticipantKhatamCount(participantId) {
                 }
             }
         }
-    
