@@ -162,7 +162,7 @@
                         const testPromise = window.supabaseClient
                             .from('participants')
                             .select('count')
-                            .limit(1);
+                            .(1);
                         
                         const { data, error } = await Promise.race([testPromise, timeoutPromise]);
                         
@@ -200,7 +200,7 @@
                         const testPromise = window.supabaseClient
                             .from('participants')
                             .select('count')
-                            .limit(1);
+                            .(1);
                         
                         const { data, error } = await Promise.race([testPromise, timeoutPromise]);
                         
@@ -212,7 +212,7 @@
                         const { error: writeError } = await window.supabaseClient
                             .from('daily_checks')
                             .select('count')
-                            .limit(1);
+                            .(1);
                             
                         if (writeError) {
                             console.warn('Write test warning:', writeError.message);
@@ -255,7 +255,7 @@
                             .from('daily_checks')
                             .select('participant_id, check_date')
                             .order('check_date', { ascending: false })
-                            .limit(2000); // Ambil 2000 record terakhir
+                            .limit(200000); // Ambil 2000 record terakhir
                             
                         if (allChecksError) {
                             console.warn('All checks load warning:', allChecksError);
