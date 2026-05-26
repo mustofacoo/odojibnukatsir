@@ -1042,6 +1042,7 @@ function quranTracker() {
                     const rotatedParticipants = this.getRotatedParticipants();
                     const completedParticipants = [];
                     const pendingParticipants = [];
+                    const exportMonth = (this.selectedDate || this.getTodayKey()).slice(0, 7); //
                     
                     rotatedParticipants.forEach((participant, index) => {
                         const juzNumber = index + 1;
@@ -1065,9 +1066,16 @@ function quranTracker() {
                     });
 
                     // Sort berdasarkan centang bulan ini (terbanyak di atas)
-                    completedParticipants.sort((a, b) => this.getParticipantMonthlyCount(b.id) - this.getParticipantMonthlyCount(a.id));
-                    pendingParticipants.sort((a, b) => this.getParticipantMonthlyCount(b.id) - this.getParticipantMonthlyCount(a.id));
-                    
+                    completedParticipants.sort((a, b) => {
+                        const countA = this.monthlyData[exportMonth]?.participantChecks?.[a.id]?.length || 0;
+                        const countB = this.monthlyData[exportMonth]?.participantChecks?.[b.id]?.length || 0;
+                        return countB - countA;
+                    });
+                    pendingParticipants.sort((a, b) => {
+                        const countA = this.monthlyData[exportMonth]?.participantChecks?.[a.id]?.length || 0;
+                        const countB = this.monthlyData[exportMonth]?.participantChecks?.[b.id]?.length || 0;
+                        return countB - countA;
+                    });
                     let exportText = `*BISMILLAH ISTIQOMAH ONE DAY ONE JUZ*\n`;
                     exportText += `${dateStr}\n`;
                     exportText += `Update: ${timeStr} WIB\n`;
@@ -1082,7 +1090,8 @@ function quranTracker() {
                     if (completedParticipants.length > 0) {
                         exportText += `*SUDAH SELESAI (${completedParticipants.length})*\n`;
                         completedParticipants.forEach(p => {
-                            const total = this.getParticipantMonthlyCount(p.id);
+                            const monthData = this.monthlyData[exportMonth];
+const total = monthData?.participantChecks?.[p.id]?.length || 0;
                             exportText += ` ${p.name} - Juz ${p.juz} (${total}x bulan ini)\n`;
                         });
                         exportText += `\n`;
@@ -1091,7 +1100,8 @@ function quranTracker() {
                     if (pendingParticipants.length > 0) {
                         exportText += `*BELUM SELESAI (${pendingParticipants.length})*\n`;
                         pendingParticipants.forEach(p => {
-                            const total = this.getParticipantMonthlyCount(p.id);
+                            const monthData = this.monthlyData[exportMonth];
+const total = monthData?.participantChecks?.[p.id]?.length || 0;
                             exportText += ` ${p.name} - Juz ${p.juz} (${total}x bulan ini)\n`;
                         });
                     }
